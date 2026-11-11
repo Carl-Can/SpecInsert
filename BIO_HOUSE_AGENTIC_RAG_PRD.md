@@ -1,10 +1,14 @@
 # 《Bio-House 赛博豪斯》产品需求规格书 (PRD)
 ## 面向黑客松/黑松路大赛的生物医药反直觉疑案与生化毒理证伪沙盒
 
+> **What actually ships:** This PRD is an aspirational sketch. The running MVP is an educational sandbox and an unofficial homage. It is not a diagnostic device and not an official television tie-in. The knowledge base is a curated in-process chunk library, with keyword overlap for custom cases. There is no vector index, no live PubMed retrieval, and no GraphRAG. Names such as Lightfoot, FALCA, or “2026 arXiv” below are framing ideas, not systems this repository implements. Do not cite this file as evidence that those systems are running here.
+>
+> **文档状态：** 下文是设想稿，不是已交付实现说明。当前代码以 README 和 `.kiro/specs/bio-house-mvp/` 为准。
+
 > **文档版本**：v1.0 (Hackathon Edition)  
 > **编写时间**：2026年11月11日  
 > **项目代号**：`Bio-House`（赛博豪斯 / 生物医药反直觉机理侦探）  
-> **核心标签**：`Agentic RAG` · `假设-证伪双侧证据集 (CES)` · `程序性推理图模式 (GPM)` · `生物黑客安全沙盒` · `老药新用机理碰撞`
+> **核心标签**：`教学沙盒` · `假设-证伪双侧证据集 (CES)` · `整理过的机制笔记` · `老药新用机理碰撞`
 
 ---
 

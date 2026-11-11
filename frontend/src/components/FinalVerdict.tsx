@@ -1,4 +1,5 @@
 import type { CuddyOutput } from '../types';
+import { EDUCATIONAL_DISCLAIMER_EN, EDUCATIONAL_DISCLAIMER_ZH } from '../disclaimer';
 
 interface Props {
   cuddy: CuddyOutput;
@@ -31,7 +32,7 @@ export default function FinalVerdict({ cuddy }: Props) {
           fontSize: 11,
           color: '#34d399',
           fontWeight: 600,
-        }}>案件已结案</div>
+        }}>教学推演结束</div>
       </div>
 
       {/* Cuddy 裁决宣言 */}
@@ -79,10 +80,25 @@ export default function FinalVerdict({ cuddy }: Props) {
         marginBottom: final_diagnosis.safety_warning ? 10 : 0,
       }}>
         <h4 style={{ fontSize: 11, color: '#0ea5e9', marginBottom: 6, fontWeight: 600 }}>
-          💊 生化干预对策
+          讨论用机制干预（不是医嘱）
         </h4>
         <p style={{ fontSize: 12, color: '#7dd3fc', lineHeight: 1.6 }}>
           {final_diagnosis.intervention}
+        </p>
+      </div>
+
+      <div style={{
+        padding: '10px 14px',
+        background: 'rgba(245,158,11,0.08)',
+        border: '1px solid rgba(245,158,11,0.35)',
+        borderRadius: 8,
+        marginTop: 10,
+      }}>
+        <p style={{ fontSize: 12, color: '#fcd34d', lineHeight: 1.5 }}>
+          {EDUCATIONAL_DISCLAIMER_EN}
+        </p>
+        <p style={{ fontSize: 12, color: '#e7e5e4', lineHeight: 1.5, marginTop: 4 }}>
+          {EDUCATIONAL_DISCLAIMER_ZH}
         </p>
       </div>
 

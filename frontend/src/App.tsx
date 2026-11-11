@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import type { Scenario, DiagnosisState, HouseOutput, CameronOutput, CuddyOutput } from './types';
-import { fetchScenarios, streamDiagnose, checkHealth } from './api';
+import { API_BASE, fetchScenarios, streamDiagnose, checkHealth } from './api';
 import Sidebar from './components/Sidebar';
 import Whiteboard from './components/Whiteboard';
+import {
+  CITATION_NOTE_EN,
+  CITATION_NOTE_ZH,
+  EDUCATIONAL_DISCLAIMER_EN,
+  EDUCATIONAL_DISCLAIMER_ZH,
+} from './disclaimer';
 
 const INITIAL_STATE: DiagnosisState = {
   stage: 'idle',
@@ -165,11 +171,25 @@ export default function App() {
 
           {backendStatus === 'error' && (
             <span style={{ fontSize: 10, color: '#6b7280' }}>
-              请确保后端在 localhost:8000 运行
+              后端不可达：{API_BASE}
             </span>
           )}
         </div>
       </header>
+
+      <div style={{
+        background: 'rgba(245,158,11,0.08)',
+        borderBottom: '1px solid rgba(245,158,11,0.28)',
+        padding: '6px 16px',
+        flexShrink: 0,
+      }}>
+        <p style={{ fontSize: 11, color: '#fcd34d', lineHeight: 1.45 }}>
+          {EDUCATIONAL_DISCLAIMER_EN}
+        </p>
+        <p style={{ fontSize: 11, color: '#d6d3d1', lineHeight: 1.45, marginTop: 2 }}>
+          {EDUCATIONAL_DISCLAIMER_ZH} {CITATION_NOTE_ZH} {CITATION_NOTE_EN}
+        </p>
+      </div>
 
       {/* 主体区 */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

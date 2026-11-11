@@ -1,29 +1,42 @@
 """
-Bio-House 赛博豪斯 - FastAPI 后端主入口
+Bio-House - FastAPI backend.
+
+Educational sandbox. Not a medical device.
 """
 
 import json
 import asyncio
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from knowledge_base import get_all_scenarios, get_scenario, retrieve_knowledge
 from agents import run_pipeline_stream
+from settings import DEFAULT_LLM_BASE_URL, DEFAULT_LLM_MODEL, cors_config, is_llm_configured
+
+_cors_origins, _cors_credentials = cors_config()
 
 app = FastAPI(
-    title="Bio-House 赛博豪斯 API",
-    description="生物医药反直觉疑案与生化毒理证伪沙盒",
+    title="Bio-House API",
+    description=(
+        "Educational biomedical mechanism sandbox. "
+        "Not a diagnostic device. Knowledge base is curated teaching notes, not live RAG."
+    ),
     version="1.0.0-mvp",
 )
 
-# CORS 配置（允许前端开发服务器访问）
+# CORS_ORIGINS is a comma-separated list. Use * only for a public demo
+# that does not send cookies. Local defaults cover Vite and a common alt port.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,10 +54,13 @@ class DiagnoseRequest(BaseModel):
 @app.get("/")
 async def root():
     return {
-        "name": "Bio-House 赛博豪斯",
+        "name": "Bio-House",
         "version": "1.0.0-mvp",
         "status": "online",
         "tagline": "Everybody lies, but metabolic pathways don't.",
+        "educational_use_only": True,
+        "diagnostic_device": False,
+        "knowledge_base": "curated_chunks",
     }
 
 
@@ -72,17 +88,28 @@ async def diagnose_stream(request: DiagnoseRequest):
     if not request.case_input.strip():
         raise HTTPException(status_code=400, detail="case_input 不能为空")
 
-    # 检索相关知识片段
-    scenario = get_scenario(request.scenario_id)
+    if not is_llm_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "LLM_API_KEY is missing or still a placeholder. "
+                "Copy backend/.env.example to backend/.env, set a real key, and restart. "
+                "Do not commit backend/.env."
+            ),
+        )
+
+    # Curated notes for preset cases; keyword overlap for custom text.
+    scenario_id = request.scenario_id or "custom"
+    scenario = get_scenario(scenario_id)
     entities = scenario.get("entities", []) if scenario else []
-    knowledge_chunks = retrieve_knowledge(entities, request.scenario_id)
+    knowledge_chunks = retrieve_knowledge(entities, scenario_id, request.case_input)
 
     async def event_generator():
         try:
             async for event in run_pipeline_stream(
                 request.case_input,
                 knowledge_chunks,
-                request.scenario_id,
+                scenario_id,
             ):
                 # SSE 格式: data: <json>\n\n
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
@@ -103,14 +130,15 @@ async def diagnose_stream(request: DiagnoseRequest):
 
 @app.get("/api/health")
 async def health_check():
-    """健康检查"""
-    import os
-    has_key = bool(os.getenv("LLM_API_KEY") and os.getenv("LLM_API_KEY") != "demo-key")
+    """健康检查。不返回 API key。"""
     return {
         "status": "healthy",
-        "llm_configured": has_key,
-        "model": os.getenv("LLM_MODEL", "deepseek-chat"),
-        "base_url": os.getenv("LLM_BASE_URL", "未配置"),
+        "llm_configured": is_llm_configured(),
+        "model": os.getenv("LLM_MODEL", DEFAULT_LLM_MODEL),
+        "base_url": os.getenv("LLM_BASE_URL", DEFAULT_LLM_BASE_URL),
+        "educational_use_only": True,
+        "diagnostic_device": False,
+        "knowledge_base": "curated_chunks",
     }
 
 

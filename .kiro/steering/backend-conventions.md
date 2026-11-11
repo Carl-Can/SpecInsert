@@ -18,7 +18,9 @@ fileMatchPattern: "backend/**/*.py"
 - 请求体用 Pydantic `BaseModel` 定义，字段加 `Optional` 时提供默认值
 - SSE 路由返回 `StreamingResponse(generator, media_type="text/event-stream")`
 - SSE 每条事件格式严格为：`f"data: {json.dumps(event, ensure_ascii=False)}\n\n"`
-- CORS 白名单：`http://localhost:5173`、`http://localhost:3000`、`http://127.0.0.1:5173`
+- CORS 来自环境变量 `CORS_ORIGINS`（逗号分隔）。未设置时默认 `http://localhost:5173`、`http://127.0.0.1:5173`、`http://localhost:3000`
+- `CORS_ORIGINS=*` 时关闭 `allow_credentials`
+- 占位 API key（空、`demo-key`、`your_api_key_here`、`sk-xxxxxxxxxxxxxxxx`）视为未配置；诊断接口返回 503
 
 ## Agent 调用约定
 
@@ -31,9 +33,10 @@ fileMatchPattern: "backend/**/*.py"
 
 新增知识片段时：
 1. 在 `KNOWLEDGE_CHUNKS` 字典中添加条目，key 为 `snake_case` 描述
-2. 片段首行必须包含 `[文献来源: 期刊名 年份]` 标注
-3. 在 `retrieve_knowledge()` 函数的对应 `scenario_id` 分支中引用
-4. 每个场景的知识片段控制在 3~5 条，避免超出 LLM 上下文窗口
+2. 片段写成教学笔记，并在 `CHUNK_KEYWORDS` 里加上中英文关键词，供 `custom` 病例重叠匹配
+3. 不要写看起来像真实论文的 `[文献来源: 期刊 年份]`。`retrieve_knowledge()` 会自动加上 illustrative / to-be-verified 前缀
+4. 预置剧本放进 `PRESET_CHUNK_IDS`。每个场景控制在 3~5 条，避免超出上下文
+5. 数字、监管编号和页码如果没有核对过，就不要写成已证实结果
 
 ## 禁止事项
 

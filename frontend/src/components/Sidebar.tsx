@@ -129,7 +129,7 @@ export default function Sidebar({ scenarios, activeId, onSelect, onNewCase }: Pr
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-          <span>MVP v1.0 · Hackathon Edition</span>
+          <span>MVP · educational sandbox</span>
         </div>
       </div>
     </aside>

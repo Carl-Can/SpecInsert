@@ -61,11 +61,11 @@ THE SYSTEM SHALL 截断并追加省略号显示
 WHEN 应用启动时
 THE SYSTEM SHALL 请求 `/api/health` 并在顶部状态栏显示后端在线/离线状态
 
-WHEN LLM_API_KEY 未配置（值为 "demo-key"）
-THE SYSTEM SHALL 在状态栏显示"LLM 未配置"黄色警告图标
+WHEN LLM_API_KEY 未配置，或仍是占位符（空字符串、`demo-key`、`your_api_key_here`、`sk-xxxxxxxxxxxxxxxx`）
+THE SYSTEM SHALL 在状态栏显示"LLM 未配置"，并且 `POST /api/diagnose/stream` 返回 503，不向模型供应商发请求
 
 WHEN 后端不可达
-THE SYSTEM SHALL 禁用"启动会诊"按钮，并提示用户启动后端服务
+THE SYSTEM SHALL 禁用"启动会诊"按钮，并提示当前配置的 API 基址（`VITE_API_BASE_URL`，默认 `http://localhost:8000`）
 
 ## 6. 自由输入推演
 
@@ -73,7 +73,10 @@ WHEN 用户在输入框中输入自定义病例描述
 THE SYSTEM SHALL 允许启动推演，scenario_id 传递为 "custom"
 
 WHEN scenario_id 为 "custom"
-THE SYSTEM SHALL 不检索预置知识片段，让大模型基于自身知识生成假说
+THE SYSTEM SHALL 用病例原文和实体列表对整理过的教学笔记做关键词重叠，最多返回 3 条；没有任何重叠时返回空列表
+
+WHEN 自定义病例没有命中教学笔记
+THE SYSTEM SHALL 告诉 Cameron 本次没有整理过的笔记，并禁止把该轮说成文献检索或向量检索
 
 ## 7. 错误处理
 
@@ -89,4 +92,28 @@ WHEN 后端收到 `scenario_id` 为已知剧本的请求
 THE SYSTEM SHALL 从知识库检索对应的生化文献片段并注入 Cameron Agent 的上下文
 
 WHEN 知识库片段注入 Cameron
-THE SYSTEM SHALL 在 Cameron 的系统提示和用户消息中包含完整的文献来源标注
+THE SYSTEM SHALL 在每条笔记前加上 `[ILLUSTRATIVE / to-be-verified]`，并要求 Cameron 把依据标成“示意/待核验”，不得把笔记里的期刊名、统计量或监管编号写成已核实文献
+
+## 9. 教学免责声明
+
+WHEN 用户打开应用
+THE SYSTEM SHALL 在界面上同时展示英文和中文说明：这是教学沙盒，不是医疗器械，不能用于诊断、治疗或给药；House / Cameron / Cuddy 是非官方致敬，不是官方衍生
+
+WHEN 最终裁决面板出现
+THE SYSTEM SHALL 再次展示同一条教学免责声明，并把干预文案标成讨论，而不是医嘱
+
+## 10. 可配置的 API 基址与 CORS
+
+WHEN 构建或开发前端时设置了 `VITE_API_BASE_URL`
+THE SYSTEM SHALL 用该地址请求后端；未设置时使用 `http://localhost:8000`
+
+WHEN 后端设置了 `CORS_ORIGINS`（逗号分隔）
+THE SYSTEM SHALL 只允许这些来源；未设置时允许本地 Vite 与 `localhost:3000`。值为 `*` 时允许任意来源并关闭 credentials
+
+## 11. 可复现启动
+
+WHEN 贡献者在干净克隆上运行 `./start.sh` 且 `backend/.env` 不存在
+THE SYSTEM SHALL 从 `backend/.env.example` 复制出 `.env`（该文件被 gitignore），创建尚不存在的 venv，并在 key 仍是占位符时以非零状态退出，且不启动服务、不打印 key
+
+WHEN key 已是真实值
+THE SYSTEM SHALL 安装后端依赖，在缺少 `node_modules` 时安装前端依赖，然后启动 API 与 Vite

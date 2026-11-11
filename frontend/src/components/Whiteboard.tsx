@@ -3,6 +3,7 @@ import HypothesisCard from './HypothesisCard';
 import MetabolicGraph from './MetabolicGraph';
 import FinalVerdict from './FinalVerdict';
 import AgentStatus from './AgentStatus';
+import { CITATION_NOTE_ZH } from '../disclaimer';
 
 interface Props {
   state: DiagnosisState;
@@ -29,8 +30,11 @@ export default function Whiteboard({ state }: Props) {
         <h2 style={{ fontSize: 18, fontWeight: 600, color: '#475569', marginBottom: 8 }}>
           鉴别诊断白板
         </h2>
-        <p style={{ fontSize: 13, color: '#374151', textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: '#374151', textAlign: 'center', maxWidth: 360, lineHeight: 1.6 }}>
           从左侧选择预置疑案剧本，或在下方输入自定义病例，然后点击"启动会诊"
+        </p>
+        <p style={{ fontSize: 11, color: '#57534e', textAlign: 'center', maxWidth: 360, lineHeight: 1.5, marginTop: 10 }}>
+          {CITATION_NOTE_ZH}
         </p>
         <div style={{
           marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 420,
@@ -130,7 +134,7 @@ export default function Whiteboard({ state }: Props) {
               marginLeft: 'auto', padding: '2px 8px', borderRadius: 4,
               background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.3)',
               fontSize: 11, color: '#7dd3fc',
-            }}>证据检索</span>
+            }}>示意笔记 · 待核验</span>
           </div>
 
           {/* Cameron 评述 */}

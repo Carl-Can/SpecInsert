@@ -6,9 +6,11 @@ inclusion: always
 
 ## 项目定位
 
-Bio-House 是一个模拟《豪斯医生》诊断室的**多智能体对抗性 Agentic RAG 系统**，  
-面向生物黑客松赛事（Hackathon），核心卖点是三 Agent 假说生成-循证-证伪对抗流水线和  
-具备动效的"赛博医学白板"UI。
+Bio-House 是一个**教育向机理沙盒**：三个 Agent 做假说、对照整理笔记、再双侧证伪，  
+配一块有动效的白板。它致敬诊断室剧集的角色分工，不是官方衍生，也不是诊断设备。
+
+知识库是 `backend/knowledge_base.py` 里的整理笔记，外加自定义病例的关键词重叠。  
+不要把它写成向量 RAG、GraphRAG 或实时文献检索，除非代码里真的接上了这些组件。
 
 ## 目录结构
 
@@ -41,7 +43,7 @@ SpecInsert/
 | 后端 | Python 3.12, FastAPI, Uvicorn, Pydantic v2 |
 | LLM 通信 | `openai` Python SDK（OpenAI 兼容接口）|
 | 流式输出 | SSE（Server-Sent Events），`sse-starlette` |
-| 知识库 | MVP 阶段：Python 字典硬编码；后续可替换 ChromaDB |
+| 知识库 | 进程内整理笔记 + 关键词重叠。不是向量库 |
 
 ## 关键约定
 
@@ -60,4 +62,6 @@ SpecInsert/
 
 ### 通用
 - 不引入未在 `requirements.txt` / `package.json` 中的新依赖，除非明确必要
-- 生化知识片段附文献来源标注格式：`[文献来源: 期刊 年份; ...]`
+- 教学笔记必须能被识别为示意文本。返回给模型的每条笔记以 `[ILLUSTRATIVE / to-be-verified]` 开头
+- 不把占位 API key 或真实 `.env` 提交进 git
+- `.kiro` 留在仓库根目录并且可被公开看到。hook 命令使用仓库相对路径

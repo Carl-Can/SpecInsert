@@ -11,24 +11,37 @@ from typing import AsyncGenerator
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
+from settings import DEFAULT_LLM_BASE_URL, DEFAULT_LLM_MODEL, is_llm_configured
+
 load_dotenv()
 
-# LLM 客户端配置
+# LLM 客户端配置。缺 key 时不把占位符当成可用配置；诊断入口会先拒绝请求。
 client = AsyncOpenAI(
     api_key=os.getenv("LLM_API_KEY", "demo-key"),
-    base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com/v1"),
+    base_url=os.getenv("LLM_BASE_URL", DEFAULT_LLM_BASE_URL),
 )
-MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+MODEL = os.getenv("LLM_MODEL", DEFAULT_LLM_MODEL)
+
+
+def require_llm_configured() -> None:
+    if not is_llm_configured():
+        raise RuntimeError(
+            "LLM_API_KEY is missing or still a placeholder. "
+            "Copy backend/.env.example to backend/.env and set a real key. "
+            "Do not commit that file."
+        )
 
 # ─── Agent 系统提示词 ──────────────────────────────────────────────────────────
 
-HOUSE_SYSTEM = """你是《Bio-House 赛博豪斯》中的 Dr. Gregory House。
-你是一个桀骜不驯、反直觉、痛恨平庸假说的顶级诊断学家。
-你的性格：讽刺、直接、天才，永远不接受"最常见的可能性"。
+HOUSE_SYSTEM = """你是教育沙盒《Bio-House》里的 Dr. Gregory House。
+这是对一部电视剧诊断室风格的非官方致敬，不是官方衍生作品，也不是医疗器械。
+你是一个桀骜不驯、反直觉、痛恨平庸假说的角色。
+你的性格：讽刺、直接，永远不接受"最常见的可能性"。
+你产出的是教学假说，不是诊断、处方或给药建议。
 
 你的任务：
-1. 分析患者症状/实验室数据/用药情况
-2. 拒绝平庸诊断，提出3-4个野性、反直觉的生化假说
+1. 分析病例文本里的症状/实验室数据/用药情况
+2. 拒绝平庸解释，提出3-4个野性、反直觉的生化假说
 3. 每个假说必须有明确的生化机制猜想（即便还未验证）
 4. 给每个假说打一个初始置信度（0-100%）
 5. 识别最需要被验证的关键生化节点
@@ -49,14 +62,18 @@ HOUSE_SYSTEM = """你是《Bio-House 赛博豪斯》中的 Dr. Gregory House。
   "priority_investigation": "最优先需要调查的核心问题"
 }"""
 
-CAMERON_SYSTEM = """你是《Bio-House 赛博豪斯》中的 Dr. Cameron（循证医学侦探）。
-你严密、客观、信奉数据与文献证据。你的工作是用真实生化知识为假说找证据。
+CAMERON_SYSTEM = """你是教育沙盒《Bio-House》中的 Dr. Cameron（机制核对角色）。
+这是非官方致敬，不是医疗器械。你严密、客观，但你只能使用本次消息里给出的教学笔记和病例文本。
 
-给定知识库片段和House的假说，你的任务：
-1. 评估每个假说的证据强度（文献支持度）
-2. 提取关键分子机制细节
+知识库笔记都带有 ILLUSTRATIVE / to-be-verified 标记。它们不是已核验论文，也不是实时检索结果。
+禁止把笔记里的期刊名、年份、倍数、p 值、置信区间或监管编号写成已证实来源。
+若笔记为空，就明确写“本次没有命中整理过的教学笔记”，不要假装做过文献检索。
+
+给定教学笔记和 House 的假说，你的任务：
+1. 评估每个假说与这些笔记的吻合程度（不是文献支持度）
+2. 提取关键分子机制细节，并在 support_evidence 每条末尾标注“示意/待核验”
 3. 建立生化因果链：A → B → C（使用 "→" 箭头表示）
-4. 识别每个假说的核心证据支柱和潜在漏洞
+4. 识别每个假说的核心依据和潜在漏洞
 
 输出格式（JSON）：
 {
@@ -64,7 +81,7 @@ CAMERON_SYSTEM = """你是《Bio-House 赛博豪斯》中的 Dr. Cameron（循�
   "evidence_analysis": [
     {
       "hypothesis_id": "H1",
-      "support_evidence": ["证据1（附来源标注）", "证据2"],
+      "support_evidence": ["机制要点（示意/待核验）", "另一条笔记中的对应关系（示意/待核验）"],
       "evidence_strength": "强/中/弱",
       "causal_chain": "A → B → C → D（生化因果链）",
       "vulnerability": "该假说的潜在漏洞或未解释现象"
@@ -75,15 +92,18 @@ CAMERON_SYSTEM = """你是《Bio-House 赛博豪斯》中的 Dr. Cameron（循�
   ]
 }"""
 
-CUDDY_SYSTEM = """你是《Bio-House 赛博豪斯》中的 Dr. Cuddy（CES双侧证伪仲裁官）。
-你审慎、严格，代表患者安全与证据对称性。
+CUDDY_SYSTEM = """你是教育沙盒《Bio-House》中的 Dr. Cuddy（CES双侧证伪仲裁角色）。
+这是非官方致敬，不是医疗器械，不能给出真实世界的诊断或治疗指令。
+你审慎、严格，要求证据对称。
 
 你实施 Conformal Evidence Sets (CES) 双侧裁决：
 - 对每个假说，必须同时提供"支持集（Support Set）"与"反驳集（Refute Set）"
 - 有致命矛盾的假说必须被明确证伪（画叉）
-- 最终输出：被证伪的假说列表 + 存活的假说 + 置信度更新 + 临床裁决
+- 最终输出：被证伪的假说列表 + 存活的假说 + 置信度更新 + 教学向裁决
 
-注意：你代表科学严谨性，任何未完成证据闭环的推论不得作为最终诊断依据。
+注意：任何未完成证据闭环的推论不得写成确诊。
+safety_warning 必须包含这句话：“教学沙盒输出，不是诊断或治疗依据；知识笔记为示意/待核验。”
+intervention 只能写成教学讨论，并提醒用户去找有资质的专业人员，不要把剂量写成医嘱。
 
 输出格式（JSON）：
 {
@@ -132,7 +152,14 @@ async def run_cameron(
     case_input: str, house_output: dict, knowledge_chunks: list[str]
 ) -> dict:
     """Agent 2: Cameron 循证检索与证据分析"""
-    knowledge_text = "\n---\n".join(knowledge_chunks) if knowledge_chunks else "暂无检索到的相关文献。"
+    if knowledge_chunks:
+        knowledge_text = "\n---\n".join(knowledge_chunks)
+    else:
+        knowledge_text = (
+            "本次没有命中任何整理过的教学笔记。"
+            "不要声称进行了文献检索或向量检索。"
+            "请把证据强度标为弱，并写明依据不足。"
+        )
     messages = [
         {"role": "system", "content": CAMERON_SYSTEM},
         {
@@ -198,6 +225,8 @@ async def run_pipeline_stream(
     完整三智能体推理流水线（流式 SSE 输出）
     每个阶段完成后 yield 一个事件
     """
+    require_llm_configured()
+
     # 阶段 1: House
     yield {"stage": "house_thinking", "message": "Dr. House 正在分析病例，准备提出反直觉假说..."}
     try:

@@ -135,3 +135,17 @@
 - 验证后端不可达时前端正确禁用提交
 - 编写 `start.sh` 一键启动脚本
 - Depends on: Task 4, Task 14
+
+## Follow-up: Kiroween submission readiness
+
+已在代码里落地，用来修正初版 MVP 和提交要求之间的差距：
+
+- [x] 仓库根目录增加 MIT `LICENSE`
+- [x] `start.sh` 在干净克隆上创建 venv、安装依赖、从 example 复制 `.env`，key 仍是占位符时非零退出且不打印 key
+- [x] `VITE_API_BASE_URL` 与 `CORS_ORIGINS` 可配置，默认仍是本地开发
+- [x] `.kiro/hooks` 改为仓库相对路径，去掉绝对机器路径和路径末尾空格
+- [x] README 改为中英双语，并写明教学用途、致敬声明、知识库不是向量 RAG
+- [x] 界面顶部、空白板和最终裁决面板展示免责声明
+- [x] 教学笔记标为 illustrative / to-be-verified；Cameron 不得把它们写成已核实论文
+- [x] `custom` 病例按关键词重叠最多取 3 条笔记，未命中则明确为空
+- [ ] 公开可访问的 demo URL 仍未部署：本仓库没有托管账号。上线时设置 `CORS_ORIGINS` 与 `VITE_API_BASE_URL` 即可，不要编造地址
