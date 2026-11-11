@@ -1,0 +1,13 @@
+/* Bio-House App 样式 */
+/* 大部分样式内联在组件中，这里放全局覆盖 */
+
+button {
+  font-family: inherit;
+}
+
+textarea::placeholder {
+  color: #374151;
+}
+
+/* 自定义滚动条 */
+.overflow-auto::-webkit-scrollbar { width: 4px; }

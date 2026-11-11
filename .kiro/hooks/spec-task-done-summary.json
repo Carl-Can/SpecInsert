@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Spec 任务完成后更新摘要",
+      "trigger": "PostTaskExec",
+      "description": "在 Spec 任务执行完成后，自动生成任务完成摘要并更新 tasks.md 中对应任务的状态",
+      "action": {
+        "type": "agent",
+        "prompt": "一个 Bio-House MVP 的 Spec 任务刚刚完成。请：\n1. 简要说明本次任务完成了哪些文件的创建或修改\n2. 检查 `.kiro/specs/bio-house-mvp/tasks.md` 中该任务的依赖任务是否都已完成\n3. 指出下一个可以开始执行的任务（即所有依赖都已满足的任务）"
+      }
+    }
+  ]
+}

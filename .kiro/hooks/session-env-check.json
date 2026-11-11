@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "会话启动：检查 LLM 环境配置",
+      "trigger": "SessionStart",
+      "description": "会话启动时检查 .env 配置状态，提示用户配置 LLM API Key",
+      "action": {
+        "type": "command",
+        "command": "ENV_FILE=\"/home/ifisher27/Applications/test/SpecInsert /backend/.env\"\nif [ -f \"$ENV_FILE\" ] && grep -q \"your_api_key_here\" \"$ENV_FILE\"; then\n  echo \"⚠️  backend/.env 中 LLM_API_KEY 尚未配置，请填写真实的 API Key 后再启动推理\"\n  echo \"    编辑文件：backend/.env\"\n  echo \"    将 LLM_API_KEY=your_api_key_here 替换为真实 key\"\nfi\nif [ ! -f \"$ENV_FILE\" ]; then\n  echo \"⚠️  backend/.env 文件不存在，请从 backend/.env.example 复制并配置\"\nfi\necho \"🧬 Bio-House 赛博豪斯 MVP 已就绪\"\necho \"   启动命令：./start.sh\"\necho \"   后端：cd backend && source venv/bin/activate && uvicorn main:app --reload --port 8000\"\necho \"   前端：cd frontend && npm run dev\"",
+        "timeout": 10
+      }
+    }
+  ]
+}

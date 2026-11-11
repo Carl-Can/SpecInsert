@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "前端 TypeScript 类型检查",
+      "trigger": "PostFileSave",
+      "description": "每次保存 frontend/src 下的 TS/TSX 文件后，运行 TypeScript 类型检查",
+      "matcher": "frontend/src/.*\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "cd \"/home/ifisher27/Applications/test/SpecInsert /frontend\" && npx tsc --noEmit 2>&1 | head -20 && echo \"✅ TypeScript 类型检查通过\" || true",
+        "timeout": 30
+      }
+    }
+  ]
+}

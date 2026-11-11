@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Python 后端文件保存后语法检查",
+      "trigger": "PostFileSave",
+      "description": "每次保存 backend/*.py 文件后，用 venv 中的 Python 编译检查语法错误",
+      "matcher": "backend/.*\\.py$",
+      "action": {
+        "type": "command",
+        "command": "cd \"/home/ifisher27/Applications/test/SpecInsert \" && backend/venv/bin/python -m py_compile \"$FILE\" 2>&1 && echo \"✅ 语法检查通过: $FILE\" || echo \"❌ 语法错误: $FILE\"",
+        "timeout": 15
+      }
+    }
+  ]
+}

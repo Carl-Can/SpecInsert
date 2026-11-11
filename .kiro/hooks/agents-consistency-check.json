@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "agents.py 修改后一致性检查",
+      "trigger": "PostFileSave",
+      "description": "每次修改 agents.py 后，自动检查 Agent 配置是否符合规范，并验证与前端类型的一致性",
+      "matcher": "backend/agents\\.py$",
+      "action": {
+        "type": "agent",
+        "prompt": "检查刚刚修改的 agents.py 文件，确认以下三点：\n1. House / Cameron / Cuddy 三个 Agent 的 temperature 是否符合规范（House ≥0.7，Cuddy ≤0.3）\n2. 所有 Agent 调用是否都使用了 `response_format={\"type\": \"json_object\"}`\n3. 系统提示词中的 JSON 字段是否与 `frontend/src/types.ts` 中对应的 TypeScript 接口保持一致。如果发现不一致，请列出具体差异。"
+      }
+    }
+  ]
+}
