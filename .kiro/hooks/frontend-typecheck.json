@@ -4,12 +4,12 @@
     {
       "name": "前端 TypeScript 类型检查",
       "trigger": "PostFileSave",
-      "description": "每次保存 frontend/src 下的 TS/TSX 文件后，运行 TypeScript 类型检查",
+      "description": "保存 frontend/src 下的 TS/TSX 后运行 tsc。命令从仓库根目录运行，路径相对仓库根，不依赖某台机器的绝对路径。",
       "matcher": "frontend/src/.*\\.(ts|tsx)$",
       "action": {
         "type": "command",
-        "command": "cd \"/home/ifisher27/Applications/test/SpecInsert /frontend\" && npx tsc --noEmit 2>&1 | head -20 && echo \"✅ TypeScript 类型检查通过\" || true",
-        "timeout": 30
+        "command": "cd frontend && npx tsc --noEmit -p tsconfig.app.json",
+        "timeout": 60
       }
     }
   ]

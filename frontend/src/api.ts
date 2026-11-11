@@ -1,6 +1,9 @@
-// Bio-House API 客户端
+// Bio-House API client.
+// VITE_API_BASE_URL is baked in at dev/build time (see frontend/.env.example).
+// Default keeps local ./start.sh working when the variable is unset.
 
-const API_BASE = 'http://localhost:8000';
+const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_BASE = rawApiBase.replace(/\/$/, '');
 
 export interface DiagnoseRequest {
   case_input: string;

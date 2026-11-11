@@ -1,7 +1,13 @@
 """
-Bio-House 内置知识库
-4 个预置剧本的核心生化知识片段，MVP 阶段无需向量数据库
-每个条目包含: 实体、机制描述、支持证据、反驳证据
+Bio-House curated teaching notes.
+
+These are hand-written mechanism sketches for four preset cases. They are not
+a vector index and not verified citations. Every chunk returned to an agent is
+prefixed so the model must treat it as illustrative / to-be-verified.
+
+Custom cases (scenario_id "custom") get up to three notes whose keywords
+overlap the free-text input. If nothing overlaps, the list is empty and the
+model is told it has no curated notes.
 """
 
 SCENARIOS = {
@@ -61,107 +67,143 @@ CK 正常，肾功能轻度下降。请展开鉴别诊断。""",
     },
 }
 
-# 核心生化知识片段库（模拟 RAG 检索结果）
+ILLUSTRATIVE_PREFIX = (
+    "[ILLUSTRATIVE / to-be-verified — curated teaching note, not a verified citation. "
+    "Do not treat journal names, years, statistics, or report IDs below as confirmed sources.]\n"
+)
+
+# Teaching sketches. Headers used to look like papers; they are not citations.
 KNOWLEDGE_CHUNKS = {
     "metformin_mtor": """
-[文献来源: Nature Metabolism 2024; Cell Metabolism 2023]
-二甲双胍通过直接抑制线粒体复合物I（NADH:泛醌氧化还原酶）降低ATP/ADP比值，
-激活AMPK（AMP激活蛋白激酶）。在正常剂量下，这促进葡萄糖摄取和脂肪酸氧化。
-然而，当雷帕霉素同时抑制mTORC1时，细胞能量感知回路产生协同耗竭：
-- 二甲双胍：复合物I抑制 → ↑AMP → ↑AMPK → ↑自噬启动信号
-- 雷帕霉素：mTORC1抑制 → ↑自噬通量
-两药叠服在饥饿状态下产生"自噬超载"，细胞无法及时处理大量自噬体，
-线粒体大量降解 → 氧化磷酸化能力骤降 → 无氧糖酵解补偿 → 乳酸堆积
-关键证据：在体外实验中，双药联合使乳酸产生量提升3.4倍（CI: 2.8-4.1, p<0.001）
+[Illustrative sketch only — not a citable paper]
+二甲双胍常被描述为抑制线粒体复合物 I（NADH:泛醌氧化还原酶），从而降低 ATP/ADP 比值并激活 AMPK。
+雷帕霉素同时抑制 mTORC1 时，能量感知与自噬信号可能叠在一起：
+- 二甲双胍：复合物 I 抑制 → AMP 升高 → AMPK 激活 → 自噬启动信号
+- 雷帕霉素：mTORC1 抑制 → 自噬通量增加
+教学推演：在能量已经不足时，两药叠用可能让线粒体产能下降、糖酵解代偿、乳酸升高。
+数字未核验：本仓库没有核实过“乳酸升高倍数、置信区间或 p 值”，不要把任何具体统计量写成实验结果。
 """,
     "rapamycin_autophagy": """
-[文献来源: Autophagy 2025; JCI 2024]
-雷帕霉素（Rapamycin）作为mTOR抑制剂，通过以下机制影响能量代谢：
-1. mTORC1抑制 → S6K1/4E-BP1去磷酸化 → 蛋白质合成减少
-2. ULK1激活 → 自噬启动（有益的线粒体质量控制）
-3. 然而长期高剂量使用：mTORC2间接受影响 → AKT/SGK1信号下调 → 胰岛素抵抗加重
-关键危险交互：在低糖饮食/禁食状态下，雷帕霉素+二甲双胍使肝糖输出受限，
-骨骼肌乳酸代谢能力下降，乳酸清除率降低约40%
-反例证据（需评估）：部分动物研究显示二药联合可延长寿命，
-但这些研究均在严格热量限制+渐进加量方案下进行，非急性大剂量
+[Illustrative sketch only — not a citable paper]
+雷帕霉素作为 mTOR 抑制剂的教学路径：
+1. mTORC1 抑制 → S6K1/4E-BP1 去磷酸化 → 蛋白质合成减少
+2. ULK1 激活 → 自噬启动（线粒体质量控制的常用讲法）
+3. 长期或高剂量时，mTORC2 也可能间接受影响 → AKT 信号下调，这一步争议更大，必须标成待核验
+反例也要保留：有动物研究讨论过雷帕霉素与二甲双胍的寿命相关组合，但那些方案不是本病例里的急性自行叠服。
+具体“乳酸清除率下降百分之多少”未在本仓库核验。
 """,
     "semaglutide_gut": """
-[文献来源: NEJM 2023; Diabetes Care 2024]
-司美格鲁肽（GLP-1受体激动剂）对二甲双胍代谢的关键影响：
-1. 显著延迟胃排空（Gastric Emptying）：胃排空时间延长约35-50%
-2. 二甲双胍为延迟释放型口服制剂，当胃排空大幅延迟后：
-   - 药物在小肠近端停留时间延长
-   - 吸收峰值推迟且峰浓度可能升高约20-40%（个体差异大）
-3. 重要临床证据：FDA已收到数起GLP-1受体激动剂与二甲双胍联用导致
-   乳酸酸中毒的不良事件报告（MedWatch ID: 2023-0847系列）
-结论：司美格鲁肽可能使二甲双胍Cmax上升，在已存在线粒体抑制的情况下
-进一步加剧乳酸堆积风险（三药协同毒性机制）
+[Illustrative sketch only — not a citable paper]
+司美格鲁肽（GLP-1 受体激动剂）会延迟胃排空，这是较公认的药理作用方向。
+教学推演：二甲双胍若因此在小肠停留更久，吸收达峰可能改变，个体差异很大。
+本片段不引用任何监管病例编号。不要发明 MedWatch / FAERS ID。
+是否因此造成乳酸酸中毒，要当成待核验的风险假说，而不是已证实的不良反应系列。
 """,
     "cyp3a4_grapefruit": """
-[文献来源: Clinical Pharmacology & Therapeutics 2024; FDA Drug Interaction Guidance]
-西柚汁含有呋喃香豆素（Furanocoumarins，主要为6',7'-二氢香柠檬素/DHB和香柠檬素/bergamottin）：
-机制：对肠道CYP3A4产生不可逆的"自杀性"共价结合抑制
-- 单次饮用200mL西柚汁 → CYP3A4活性抑制持续24-72小时
-- 阿托伐他汀首过代谢依赖CYP3A4约50%
-- 酶被抑制后：阿托伐他汀生物利用度升高8-12倍（血药浓度峰值Cmax升高770%）
-后果链：他汀浓度暴增 → HMG-CoA还原酶过度抑制 → 辅酶Q10合成受阻 →
-线粒体呼吸链受损 → 骨骼肌ATP耗竭 → 肌细胞膜完整性破坏 → 横纹肌溶解
-关键鉴别：P-gp（P-糖蛋白）转运体也受呋喃香豆素影响，
-使他汀从肠腔外排减少，双重机制协同致毒
+[Illustrative sketch only — not a citable paper]
+西柚中的呋喃香豆素（包括 bergamottin 与 6',7'-dihydroxybergamottin）可以抑制肠道 CYP3A4，
+这是真实且写进许多药品说明书的相互作用方向。部分呋喃香豆素被称为机制性（自杀性）抑制剂。
+阿托伐他汀的首过代谢部分依赖 CYP3A4，肠道酶被抑制后暴露量可以上升，并可能连带影响 P-gp。
+后果链教学：他汀暴露升高 → 骨骼肌毒性风险上升 → 严重时可至横纹肌溶解。
+具体升高倍数因药物、果汁剂量和个体而差很多。不要把“8–12 倍”或“Cmax +770%”写成已核实数字；
+辛伐他汀通常比阿托伐他汀对西柚更敏感，本病例写的是阿托伐他汀。
 """,
     "methanol_adh": """
-[文献来源: Critical Care Medicine 2024; Toxicology Reviews 2023]
-甲醇毒性机制（关键认知：甲醇本身毒性低，代谢产物致命）：
-代谢路径：甲醇 → [ADH, 醇脱氢酶] → 甲醛（剧毒）→ [ALDH] → 甲酸（视网膜/线粒体毒性）
-靶点损伤：
-- 甲酸抑制细胞色素c氧化酶（线粒体复合物IV）→ 组织缺氧（即使PaO2正常）
-- 视网膜含有高浓度细胞色素c氧化酶 → 视网膜神经节细胞优先受损 → 失明
-
-乙醇解毒机制（竞争性底物策略）：
-- 乙醇对ADH的亲和力（Km=1mM）远高于甲醇（Km=10mM），约10-20倍
-- 目标：维持血乙醇浓度100-150mg/dL → ADH活性位点被乙醇完全占据
-- 结果：甲醇无法被代谢 → 以原形经肾脏排出（半衰期约40-70小时）
-- 辅助：叶酸促进甲酸转化为CO2+H2O（增强解毒）
-现代替代：甲吡唑（Fomepizole，4-MP）是更精准的ADH抑制剂，但价格昂贵
+[Illustrative sketch only — not a citable paper]
+甲醇本身不是主要毒物，其代谢产物才是。教学路径：
+甲醇 → 醇脱氢酶 ADH → 甲醛 → 醛脱氢酶 ALDH → 甲酸。
+甲酸可抑制线粒体细胞色素 c 氧化酶；视网膜富含这一酶，所以视力损伤被放在机制链条的末端。
+乙醇解毒的教学讲法是竞争性底物：乙醇对 ADH 的亲和力高于甲醇，维持一定血乙醇浓度可以让甲醇暂时不被代谢，
+再以原形经肾或经透析清除。叶酸常被写成帮助甲酸代谢的辅助措施。
+甲吡唑（fomepizole）是更特异的 ADH 抑制剂。Km 的具体毫摩尔数未在本仓库逐条核对，引用时标为待核验。
 """,
     "thalidomide_crbn": """
-[文献来源: Science 2010 (原始Cereblon发现); Cell 2023 (分子胶综述); Nature 2024]
-沙利度胺作用机制双面性：
-【致畸机制】（胚胎血管新生抑制）：
-- 沙利度胺结合Cereblon（CRBN），CRBN是CRL4^CRBN E3泛素连接酶复合物的底物受体
-- 在胚胎肢芽发育中：CRL4^CRBN-沙利度胺复合物降解SALL4（Sal-like protein 4）
-- SALL4是肢体发育关键转录因子 → 降解后 → 肢体血管新生受阻 → 海豹肢（phocomelia）
-- 同时降解p63 → 进一步扰乱肢体发育
-
-【骨髓瘤治疗机制】（分子胶/Molecular Glue靶向蛋白降解）：
-- 相同的CRBN结合，但在浆细胞中的底物不同：
-- CRL4^CRBN-沙利度胺招募并降解IKZF1（Ikaros）和IKZF3（Aiolos）
-- IKZF1/3是骨髓瘤细胞存活的关键转录因子（调控IRF4/MYC癌基因网络）
-- 降解IKZF1/3 → IRF4↓ → MYC↓ → 浆细胞凋亡
-关键反转：同一"毒性机制"（底物降解）在不同细胞环境下对不同蛋白靶点发挥作用
-这开创了PROTAC/CELMoD类药物的分子胶降解剂时代（来那度胺、泊马度胺均为其类似物）
+[Illustrative sketch only — not a citable paper]
+方向性背景（仍需回原论文核对，不要把本段当参考文献）：
+沙利度胺结合 Cereblon（CRBN）。CRBN 是 CRL4 E3 连接酶的底物受体。
+常被提到的原始靶点论文是 Ito et al., Science 2010（沙利度胺致畸与 CRBN）。
+IKZF1/IKZF3 在多发性骨髓瘤中被降解，常被追溯到 2014 年的 Science 论文（Krönke et al.; Lu et al.），
+而不是一份笼统的“Cell 2023 / Nature 2024”引文。本仓库没有核对页码。
+教学双面性：
+- 肢芽发育中，相关底物包括 SALL4 等转录因子，降解后肢体发育受损（海豹肢的分子讲法之一）
+- 浆细胞中，同一 CRBN 结合可以招募 IKZF1（Ikaros）和 IKZF3（Aiolos），进而压低 IRF4/MYC 生存程序
+来那度胺、泊马度胺是后续类似物。这是分子胶降解剂的教学例子，不是本沙盒算出的治疗方案。
 """,
 }
+
+PRESET_CHUNK_IDS = {
+    "biohacker": ["metformin_mtor", "rapamycin_autophagy", "semaglutide_gut"],
+    "grapefruit": ["cyp3a4_grapefruit"],
+    "methanol": ["methanol_adh"],
+    "thalidomide": ["thalidomide_crbn"],
+}
+
+# Lowercased substring match against the custom-case text and entity list.
+CHUNK_KEYWORDS = {
+    "metformin_mtor": [
+        "二甲双胍", "metformin", "雷帕霉素", "rapamycin", "mtor", "ampk",
+        "乳酸", "lactate", "nmn", "线粒体",
+    ],
+    "rapamycin_autophagy": [
+        "雷帕霉素", "rapamycin", "mtor", "自噬", "autophagy", "ulk1",
+    ],
+    "semaglutide_gut": [
+        "司美格鲁肽", "semaglutide", "glp-1", "glp1", "胃排空",
+    ],
+    "cyp3a4_grapefruit": [
+        "西柚", "grapefruit", "他汀", "statin", "阿托伐他汀", "atorvastatin",
+        "cyp3a4", "横纹肌", "rhabdomyolysis",
+    ],
+    "methanol_adh": [
+        "甲醇", "methanol", "乙醇", "ethanol", "fomepizole", "甲吡唑",
+        "甲酸", "视物模糊",
+    ],
+    "thalidomide_crbn": [
+        "沙利度胺", "thalidomide", "cereblon", "crbn", "ikzf",
+        "骨髓瘤", "myeloma", "来那度胺", "lenalidomide",
+    ],
+}
+
+MAX_CUSTOM_CHUNKS = 3
+
 
 def get_scenario(scenario_id: str) -> dict:
     return SCENARIOS.get(scenario_id, {})
 
+
 def get_all_scenarios() -> list:
     return list(SCENARIOS.values())
 
-def retrieve_knowledge(entities: list[str], scenario_id: str) -> list[str]:
-    """模拟 RAG 检索：根据场景和实体返回相关知识片段"""
-    chunks = []
-    if scenario_id == "biohacker":
-        chunks = [
-            KNOWLEDGE_CHUNKS["metformin_mtor"],
-            KNOWLEDGE_CHUNKS["rapamycin_autophagy"],
-            KNOWLEDGE_CHUNKS["semaglutide_gut"],
-        ]
-    elif scenario_id == "grapefruit":
-        chunks = [KNOWLEDGE_CHUNKS["cyp3a4_grapefruit"]]
-    elif scenario_id == "methanol":
-        chunks = [KNOWLEDGE_CHUNKS["methanol_adh"]]
-    elif scenario_id == "thalidomide":
-        chunks = [KNOWLEDGE_CHUNKS["thalidomide_crbn"]]
-    return chunks
+
+def _label(chunk: str) -> str:
+    text = chunk.strip()
+    if text.startswith("[ILLUSTRATIVE"):
+        return text
+    return ILLUSTRATIVE_PREFIX + text
+
+
+def retrieve_knowledge(
+    entities: list[str] | None,
+    scenario_id: str,
+    case_input: str = "",
+) -> list[str]:
+    """Return labeled teaching notes for a preset case or a keyword-overlap custom case."""
+    preset_ids = PRESET_CHUNK_IDS.get(scenario_id)
+    if preset_ids is not None:
+        return [_label(KNOWLEDGE_CHUNKS[chunk_id]) for chunk_id in preset_ids]
+
+    haystack = " ".join(entities or [])
+    if case_input:
+        haystack = f"{haystack}\n{case_input}"
+    haystack = haystack.lower()
+
+    scored: list[tuple[int, str]] = []
+    for chunk_id, keywords in CHUNK_KEYWORDS.items():
+        hits = sum(1 for keyword in keywords if keyword.lower() in haystack)
+        if hits:
+            scored.append((hits, chunk_id))
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [
+        _label(KNOWLEDGE_CHUNKS[chunk_id])
+        for _, chunk_id in scored[:MAX_CUSTOM_CHUNKS]
+    ]

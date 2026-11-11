@@ -2,14 +2,17 @@
 
 ## Overview
 
-Bio-House 是一个模拟《豪斯医生》诊断室的多智能体对抗性 Agentic RAG 系统。  
-用户输入生物医药疑案，系统依次触发三个 LLM Agent 进行假说生成、循证检索与双侧证伪，  
+Bio-House 是一个教育向的多智能体机理沙盒，风格上致敬诊断室剧集，但不是官方衍生，也不是医疗器械。  
+用户输入生物医药疑案，系统依次触发三个 LLM Agent 进行假说生成、对照整理笔记、双侧证伪，  
 结果通过 SSE 流式推送到前端动态白板展示。
 
 **设计核心约束：**
-- MVP 阶段无向量数据库，知识库以 Python 字典硬编码，可后续替换为 RAG 管道
+- 没有向量数据库，也没有在线文献检索。知识库是 `knowledge_base.py` 里的整理笔记
+- 预置剧本按 id 取笔记；`custom` 用关键词重叠最多取 3 条，未命中则为空
+- 每条笔记在送进模型前都标成 illustrative / to-be-verified
 - 前端无额外可视化库依赖，拓扑图用纯 SVG 手写实现
 - 三 Agent 串行执行，每阶段完成后立即推送 SSE 事件，不等待全部完成
+- API 基址由 `VITE_API_BASE_URL` 决定，CORS 由 `CORS_ORIGINS` 决定，方便以后指向已部署的后端
 
 ---
 
@@ -36,7 +39,7 @@ LLM Provider (DeepSeek / OpenAI / Qwen / 本地 vLLM)
 ```
 用户点击"启动会诊"
   → POST /api/diagnose/stream  {case_input, scenario_id}
-  → retrieve_knowledge(entities, scenario_id)   # 知识检索
+  → retrieve_knowledge(entities, scenario_id, case_input)   # 整理笔记，不是向量检索
   → run_house(case_input)                        # Agent 1：假说生成
   → SSE: {stage: "house_done", data: HouseOutput}
   → run_cameron(case_input, house_result, chunks) # Agent 2：循证
@@ -174,7 +177,7 @@ idle
 
 ## Knowledge Base Design (MVP)
 
-MVP 阶段采用硬编码字典，结构如下：
+当前实现是进程内字典，不是 RAG 平台：
 
 ```python
 SCENARIOS = {
@@ -183,20 +186,24 @@ SCENARIOS = {
 }
 
 KNOWLEDGE_CHUNKS = {
-  "metformin_mtor": "...",   # 二甲双胍与 mTOR 交互文献片段
-  "rapamycin_autophagy": "...",
+  "metformin_mtor": "...",   # 教学笔记，不是已核实引文
   ...
 }
 
-def retrieve_knowledge(entities, scenario_id) -> list[str]:
-    # 按 scenario_id 返回对应知识片段列表
-    # 后续可替换为：embedding 检索 + BM25 混合重排
+CHUNK_KEYWORDS = { "metformin_mtor": ["metformin", "雷帕霉素", ...], ... }
+
+def retrieve_knowledge(entities, scenario_id, case_input="") -> list[str]:
+    # 预置 id：返回该剧本的笔记
+    # custom：按关键词重叠取最多 3 条；零重叠返回 []
+    # 返回值一律带 ILLUSTRATIVE / to-be-verified 前缀
 ```
 
-**后续扩展路径：**
-1. 接入 PubMed API 实时检索摘要
-2. 引入 ChromaDB / Qdrant 向量库，使用 BGE-m3 嵌入
-3. BM25 + 向量混合重排（Reciprocal Rank Fusion）
+笔记里如果提到论文方向（例如 CRBN 与 2010 / 2014 的公开研究），只作为待回原文核对的背景，不构成引用格式。
+
+**还没做、也不要在文档里说成已经做了：**
+1. PubMed 实时检索
+2. ChromaDB / Qdrant 或任何向量库
+3. BM25 + 向量混合重排
 
 ---
 
@@ -218,9 +225,12 @@ def retrieve_knowledge(entities, scenario_id) -> list[str]:
 
 ```
 LLM_API_KEY=sk-xxx
-LLM_BASE_URL=https://api.deepseek.com/v1   # 或 OpenAI / Qwen / 本地 vLLM
+LLM_BASE_URL=https://api.deepseek.com/v1   # 或 OpenAI / Qwen / 本地兼容服务
 LLM_MODEL=deepseek-chat
+CORS_ORIGINS=http://localhost:5173,https://your-frontend.example
 ```
+
+前端对应变量是 `VITE_API_BASE_URL`（见 `frontend/.env.example`）。占位 key 不能启动会诊。
 
 Agent 参数：
 - House: `temperature=0.8, max_tokens=1500`
@@ -234,6 +244,7 @@ Agent 参数：
 
 | 错误场景 | 处理方式 |
 |---------|---------|
+| LLM API key 仍是占位符 | `POST /api/diagnose/stream` 返回 503，不发起模型请求 |
 | LLM API 超时/限流 | try/except 捕获，SSE 推送 `{stage: "error", message}` |
 | JSON 解析失败 | `json.loads` 异常，推送错误事件，前端显示原始文本 |
 | 后端不可达 | 前端 health check 失败，禁用提交按钮 |

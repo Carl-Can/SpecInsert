@@ -47,8 +47,10 @@ fileMatchPattern: "frontend/src/**/*.{ts,tsx}"
 ## API 调用约定
 
 - 所有后端请求通过 `src/api.ts` 封装，组件不直接 `fetch`
+- API 基址是 `import.meta.env.VITE_API_BASE_URL`，缺省为 `http://localhost:8000`。不要再把生产地址写死
 - SSE 解析：事件必须以 `data: ` 开头，使用 `ReadableStream` + `TextDecoder` 逐块解析
 - 健康检查在 `App.tsx` 的 `useEffect` 中启动时执行一次
+- 教学免责声明文案放在 `src/disclaimer.ts`，顶部栏、空白板和最终裁决都要能看到。不要加入剧集商标 logo
 
 ## 新增组件检查清单
 

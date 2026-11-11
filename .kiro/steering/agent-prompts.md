@@ -13,7 +13,7 @@ description: 三智能体系统提示词设计规范。在修改 agents.py 或�
 | Agent | 角色 | Temperature | 核心约束 |
 |-------|------|------------|---------|
 | Dr. House | 破局先锋，野性猜想 | 0.8 | 拒绝平庸，提出 3~4 个反直觉假说 |
-| Cameron | 循证侦探，工具执行 | 0.3 | 严密客观，每个假说必须有文献支撑 |
+| Cameron | 机制核对 | 0.3 | 只对照本次给出的教学笔记，证据必须标成示意/待核验 |
 | Dr. Cuddy | CES 仲裁官 | 0.2 | 强制双侧证据，致命矛盾必须证伪 |
 
 ## House 提示词关键要素
@@ -28,6 +28,8 @@ description: 三智能体系统提示词设计规范。在修改 agents.py 或�
 - **必须输出** `metabolic_cascade_nodes`：每条边含 `from`、`to`、`type`（activates/inhibits/converts）、`label`
 - **生化因果链格式**：`A → B → C → D`，使用 `→` 箭头，不用其他符号
 - **证据强度**：只能是 `强`/`中`/`弱` 三选一（前端按此映射颜色）
+- **禁止**：把整理笔记说成已检索到的论文。`support_evidence` 要带“示意/待核验”
+- 笔记为空时写明没有命中整理笔记，证据强度用 `弱`
 - **SkinMind 映射**：`causal_chain` 字段模拟 `probe_path`，`metabolic_cascade_nodes` 模拟 `probe_relations`
 
 ## Cuddy 提示词关键要素
@@ -36,7 +38,9 @@ description: 三智能体系统提示词设计规范。在修改 agents.py 或�
 - **verdict 四选一**：`CONFIRMED` / `PROBABLE` / `REFUTED` / `INSUFFICIENT_EVIDENCE`
 - **REFUTED 时**：必须填写 `refute_reason`，说明与哪条实验数据直接矛盾
 - **Lightfoot 映射**：`REFUTED` 假说对应前端红线划掉 + 透明度降低（视觉"从白板擦除"）
-- **final_diagnosis 必填字段**：`confirmed_hypothesis`、`mechanism_summary`（3-5句）、`intervention`、可选 `safety_warning`
+- **final_diagnosis 必填字段**：`confirmed_hypothesis`、`mechanism_summary`（3-5句）、`intervention`、`safety_warning`
+- `safety_warning` 必须写明教学沙盒、不是诊断或治疗依据
+- `intervention` 是教学讨论，不是医嘱；角色是非官方致敬
 
 ## 修改提示词时的注意事项
 
